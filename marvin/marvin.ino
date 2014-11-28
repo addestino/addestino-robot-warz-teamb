@@ -23,6 +23,9 @@ IRsend irsend;
 IRrecv irrecv_front(IR_RECV_FRONT);
 //IRrecv irrecv_rear(IR_RECV_REAR);
 decode_results irrecv_results;
+long distance = 0;
+
+unsigned long scanEnd;
 
 void pointTo(int angle) {
   int target=angle;
@@ -69,6 +72,9 @@ void setup() {
 
   pinMode(DIST_TRIG_PIN, OUTPUT);
   pinMode(DIST_ECHO_PIN, INPUT);
+  
+  scanEnd = millis() + 200;
+  irrecv_front.enableIRIn(); // Start the receiver
 }
 
 #define FLOOR 920
@@ -83,12 +89,9 @@ int lineDetected() {
 
   for(int i=0; i < 5; ++i) {
     avg += Robot.IRarray[i];
-    Serial.print(Robot.IRarray[i]);
-    Serial.print(", ");
   }
 
   avg = avg / 5;
-  Serial.println("");
   if(avg < THRESHOLD) {
     return 1;
   } 
@@ -153,18 +156,24 @@ int scanIR()
   irrecv_front.enableIRIn(); // Start the receiver
 
   delay(200);
-  Serial.println("Checking if they are shooting at me");
   if(irrecv_front.decode(&irrecv_results)) {
-    Serial.print(irrecv_results.value, HEX);
-    Serial.println(" --> Hit in the front/side...auwch");
     Robot.beep(BEEP_LONG);
   }
+}
+
+void scanNoWait()
+{
+  if(irrecv_front.decode(&irrecv_results)) {
+    Robot.beep(BEEP_LONG);
+  }
+  
+  irrecv_front.enableIRIn(); // Start the receiver
 }
 
 void loop() {
 
   // Your progam loop
-
+  //Serial.println("Loop started");
   if(lineDetected() && lineDetected()) {
       backAndTurn();
       //Serial.println("line");
@@ -174,6 +183,19 @@ void loop() {
     //Serial.println("noline");
       Robot.motorsWrite(MAX_SPEED, MAX_SPEED);
   }
+  
+/*  distance = distanceInCm();
+  //Serial.println(distance);
+  if(distance != 0 && distance < 20)
+  { 
+    Robot.beep(BEEP_LONG);
+  }*/
+  if(millis() > scanEnd)
+  {
+    //scanNoWait();
+    scanEnd = millis() + 200;
+  }
+  
   delay(10);
 }
 
