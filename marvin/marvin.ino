@@ -3,12 +3,26 @@
 #include <Wire.h>
 #include <SPI.h>
 
+#include <IRremote.h> //IR Remote uses TKD4 and configures this pin itself
+
 #define DIST_TRIG_PIN TKD3
 #define DIST_ECHO_PIN TKD1
 #define DIST_FOEFEL_FACTOR 1.25
 
 #define MAX_SPEED 160
 #define MAX_SPEED_REVERSE 100
+
+// IR stuff
+const int IR_RECV_REAR = TKD0;
+const int ULTRASONE_RX = TKD1;
+const int IR_RECV_FRONT = TKD2;
+const int ULTRASONE_TX =TKD3;
+const int LASER_PIN = TKD5;
+ 
+IRsend irsend;
+IRrecv irrecv_front(IR_RECV_FRONT);
+//IRrecv irrecv_rear(IR_RECV_REAR);
+decode_results irrecv_results;
 
 void pointTo(int angle) {
   int target=angle;
@@ -111,6 +125,41 @@ long distanceInCm() {
   return (duration) / 29.1 / DIST_FOEFEL_FACTOR;
 }
 
+int shootAndWait()
+{
+  unsigned long endTime = millis() + 2000;
+  unsigned long time;
+
+  Robot.beep(BEEP_DOUBLE);
+  digitalWrite(LASER_PIN, HIGH);
+  while(millis() < endTime)
+  {
+    irsend.sendNEC(0xdeaddead, 32); // 120ms
+    scanIR(); // min 200ms
+  }
+  digitalWrite(LASER_PIN, LOW);
+  Robot.beep(BEEP_DOUBLE);
+ 
+  endTime = millis() + 3000;
+  while(millis() < endTime)
+  {
+    scanIR(); // min 200ms
+  }
+  Robot.beep(BEEP_SIMPLE);
+}
+
+int scanIR()
+{
+  irrecv_front.enableIRIn(); // Start the receiver
+
+  delay(200);
+  Serial.println("Checking if they are shooting at me");
+  if(irrecv_front.decode(&irrecv_results)) {
+    Serial.print(irrecv_results.value, HEX);
+    Serial.println(" --> Hit in the front/side...auwch");
+    Robot.beep(BEEP_LONG);
+  }
+}
 
 void loop() {
 
