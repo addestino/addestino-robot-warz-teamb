@@ -3,6 +3,10 @@
 #include <Wire.h>
 #include <SPI.h>
 
+#define DIST_TRIG_PIN TKD3
+#define DIST_ECHO_PIN TKD1
+#define DIST_FOEFEL_FACTOR 1.25
+
 #define MAX_SPEED 160
 #define MAX_SPEED_REVERSE 100
 
@@ -48,6 +52,9 @@ void setup() {
   Serial.begin(9600);
 
   Robot.beginSpeaker();
+
+  pinMode(DIST_TRIG_PIN, OUTPUT);
+  pinMode(DIST_ECHO_PIN, INPUT);
 }
 
 #define FLOOR 920
@@ -93,6 +100,17 @@ void backAndTurn(){
     // wait because of possible wobble?
     delay(500);
 }
+
+long distanceInCm() {
+  digitalWrite(DIST_TRIG_PIN, LOW);
+  delayMicroseconds(2);
+  digitalWrite(DIST_TRIG_PIN, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(DIST_TRIG_PIN, LOW);
+  long duration = pulseIn(DIST_ECHO_PIN, HIGH);
+  return (duration) / 29.1 / DIST_FOEFEL_FACTOR;
+}
+
 
 void loop() {
 
